@@ -46,5 +46,5 @@ private X509Certificate2 GetCertificate()
 
 ## Reference
 
-(https://www.programmersought.com/article/51301938966/)
-(https://docs.microsoft.com/en-us/aspnet/core/security/data-protection/configuration/overview?view=aspnetcore-3.1)
+- https://www.programmersought.com/article/51301938966/
+- https://docs.microsoft.com/en-us/aspnet/core/security/data-protection/configuration/overview?view=aspnetcore-3.1
