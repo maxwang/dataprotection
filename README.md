@@ -17,7 +17,7 @@ openssl pkcs12 -export -out company.pfx -inkey company.key -in company.crt -cert
 
 ### add pfx to project as "Embedded resource
 
-### update startup file as below code:
+### update startup file as below code
 
 ```csharp
 public void ConfigureServices(IServiceCollection services)
@@ -43,3 +43,8 @@ private X509Certificate2 GetCertificate()
     }
 }
 ```
+
+## Reference
+
+(https://www.programmersought.com/article/51301938966/)
+(https://docs.microsoft.com/en-us/aspnet/core/security/data-protection/configuration/overview?view=aspnetcore-3.1)
