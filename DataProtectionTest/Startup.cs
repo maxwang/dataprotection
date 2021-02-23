@@ -6,7 +6,19 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Org.BouncyCastle.Asn1.X509;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Crypto.Operators;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Crypto.Prng;
+using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Utilities;
+using Org.BouncyCastle.Utilities.Encoders;
+using Org.BouncyCastle.X509;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -30,13 +42,13 @@ namespace DataProtectionTest
             services
                 .AddDataProtection()
                 .PersistKeysToFileSystem(new System.IO.DirectoryInfo(@"Keys"))
-                .UseCryptographicAlgorithms(new AuthenticatedEncryptorConfiguration()
-                {
-                    EncryptionAlgorithm = EncryptionAlgorithm.AES_256_CBC,
-                    ValidationAlgorithm = ValidationAlgorithm.HMACSHA256
-                });
-                // protect key with certification
-                //.ProtectKeysWithCertificate(GetCertificate()); 
+            //.UseCryptographicAlgorithms(new AuthenticatedEncryptorConfiguration()
+            // {
+            //     EncryptionAlgorithm = EncryptionAlgorithm.AES_256_CBC,
+            //     ValidationAlgorithm = ValidationAlgorithm.HMACSHA256
+            // });
+            // protect key with certification
+            .ProtectKeysWithCertificate(GenerateCertification());
             services.AddControllersWithViews();
         }
 
@@ -65,6 +77,58 @@ namespace DataProtectionTest
             });
         }
 
+
+        private X509Certificate2 GenerateCertification()
+        {
+
+            var subjectName = "CN=ebms";
+            const int keyStrength = 2048;
+
+            // Generating Random Numbers
+            CryptoApiRandomGenerator randomGenerator = new CryptoApiRandomGenerator();
+            SecureRandom random = new SecureRandom(randomGenerator);
+
+            // The Certificate Generator
+            X509V3CertificateGenerator certificateGenerator = new X509V3CertificateGenerator();
+
+            // Serial Number
+            BigInteger serialNumber = BigIntegers.CreateRandomInRange(BigInteger.One, BigInteger.ValueOf(Int64.MaxValue), random);
+            certificateGenerator.SetSerialNumber(serialNumber);
+
+            // Signature Algorithm
+            //const string signatureAlgorithm = "SHA256WithRSA";
+            //certificateGenerator.SetSignatureAlgorithm(signatureAlgorithm);
+
+            // Issuer and Subject Name
+            X509Name subjectDN = new X509Name(subjectName);
+            X509Name issuerDN = subjectDN;
+            certificateGenerator.SetIssuerDN(issuerDN);
+            certificateGenerator.SetSubjectDN(subjectDN);
+
+            // Valid For
+            DateTime notBefore = DateTime.UtcNow.Date;
+            DateTime notAfter = notBefore.AddYears(20);
+
+            certificateGenerator.SetNotBefore(notBefore);
+            certificateGenerator.SetNotAfter(notAfter);
+
+            // Subject Public Key
+            AsymmetricCipherKeyPair subjectKeyPair;
+            KeyGenerationParameters keyGenerationParameters = new KeyGenerationParameters(random, keyStrength);
+            RsaKeyPairGenerator keyPairGenerator = new RsaKeyPairGenerator();
+            keyPairGenerator.Init(keyGenerationParameters);
+            subjectKeyPair = keyPairGenerator.GenerateKeyPair();
+
+            certificateGenerator.SetPublicKey(subjectKeyPair.Public);
+
+            // Generating the Certificate
+            AsymmetricCipherKeyPair issuerKeyPair = subjectKeyPair;
+            ISignatureFactory signatureFactory = new Asn1SignatureFactory("SHA512WITHRSA", issuerKeyPair.Private, random);
+            // selfsign certificate
+            Org.BouncyCastle.X509.X509Certificate certificate = certificateGenerator.Generate(signatureFactory);
+            return new X509Certificate2(certificate.GetEncoded());
+        }
+        // this is the method to get cert from pre generated cert file
         private X509Certificate2 GetCertificate()
         {
             var assembly = typeof(Startup).GetTypeInfo().Assembly;

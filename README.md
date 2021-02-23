@@ -44,6 +44,12 @@ private X509Certificate2 GetCertificate()
 }
 ```
 
+## Method 2: ProtectKeysWithAzureKeyVault
+
+## Note
+
+- You need delete keys each time, otherwise, key will stay there
+
 ## Reference
 
 - <https://www.programmersought.com/article/51301938966/>
